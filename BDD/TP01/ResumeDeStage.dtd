@@ -1,0 +1,17 @@
+<!ELEMENT ResumeDeStage (infoGenerale, context)>
+<!ELEMENT infoGenerale (etudiant, entreprise, titreStage)>
+<!ELEMENT etudiant #PCDATA>
+<!ELEMENT entreprise (tuteur, adresse)>
+<!ELEMENT tuteur #PCDATA>
+<!ELEMENT adresse (nomEntreprise, rue, ville)>
+<!ELEMENT nomEntreprise (#PCDATA | br)*>
+<!ELEMENT br EMPTY>
+<!ELEMENT rue #PCDATA>
+<!ELEMENT ville #PCDATA>
+<!ELEMENT titreStage #PCDATA>
+<!ELEMENT context (contextStage, travailRealiser, environnement, apport)>
+<!ELEMENT contextStage (#PCDATA | br)*>
+<!ELEMENT travailRealiser #PCDATA>
+<!ELEMENT environnement (motCle+)>
+<!ELEMENT motCle #PCDATA>
+<!ELEMENT apport #PCDATA>
