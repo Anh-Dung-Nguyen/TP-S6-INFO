@@ -1,0 +1,217 @@
+Q1:
+Regarde la fichier makefile
+
+Lorsque on exécutez ./tp1, on remarque que le thread principal exécute do_loop immédiatement tandis que le thread secondaire peut ne pas avoir le temps de s'exécuter avant la fin du programme.
+En lançant plusieurs exécutions, le comportement peut varier à cause de l'ordonnancement des threads. Parfois, le thread secondaire s'exécute, parfois non.
+
+Q2:
+void* do_loop(void* data){
+    int i;
+    int me = *((int *) data);
+    int max_iterations = (me == 0) ? 100 : 10;
+
+    for (i = 0; i < max_iterations; i++) {
+        printf("Thread id %d - étape %d\n", me, i);
+    }
+    pthread_exit(NULL);
+}
+
+Q3:
+sleep(1);
+
+Après modification, chaque itération attendra 1 seconde avant d'afficher le message.
+Cela ralentira considérablement le programme.
+On peut observer que les threads alternent leurs exécutions de manière plus visible.
+
+Q4:
+pthread_join(p_thread, NULL);
+
+Cette modification force le thread principal à attendre la fin du thread secondaire avant de continuer.
+On constate que l'affichage sera bien séquentiel : d'abord le thread secondaire termine, puis le programme se termine proprement.
+
+Q5:
+int a = 0;
+t_id = pthread_create(&p_thread, &attr, do_loop, (void*) &a);
+a = 1;
+do_loop((void*) &a);
+pthread_join(p_thread, NULL);
+
+On constate que les deux threads utilisent a, mais à cause de la modification de sa valeur entre la création et l’exécution du second do_loop, les deux threads peuvent finir par avoir 1 comme valeur, ce qui peut ne pas être le comportement attendu.
+Cela illustre un problème classique de concurrence où un thread peut modifier une variable partagée avant qu’un autre thread n’ait eu le temps d’utiliser la valeur initiale.
+Pour éviter ce problème, il faudrait utiliser des variables locales ou une synchronisation.
+
+Q6:
+#include <stdio.h>
+#include <pthread.h>
+#include <unistd.h>
+
+#define NUM_THREADS 10
+
+void* do_loop(void* data) {
+    int me = *((int*) data);
+    for (int i = 0; i < 10; i++) {
+        printf("Thread %d - étape %d\n", me, i);
+    }
+    pthread_exit(NULL);
+}
+
+int main() {
+    pthread_t threads[NUM_THREADS];
+    int thread_ids[NUM_THREADS];
+
+    for (int i = 0; i < NUM_THREADS; i++) {
+        thread_ids[i] = i + 1;
+        pthread_create(&threads[i], NULL, do_loop, (void*) &thread_ids[i]);
+    }
+
+    for (int i = 0; i < NUM_THREADS; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    return 0;
+}
+
+Q7:
+#include <stdio.h>
+#include <pthread.h>
+
+#define N 1000
+int V[N];
+
+void* somme(void* arg) {
+    int* range = (int*) arg;
+    int debut = range[0];
+    int fin = range[1];
+
+    long sum = 0;
+    for (int i = debut; i < fin; i++) {
+        sum += V[i];
+    }
+
+    printf("Somme de [%d, %d[ = %ld\n", debut, fin, sum);
+    pthread_exit(NULL);
+}
+
+int main() {
+    // Initialisation du tableau
+    for (int i = 0; i < N; i++) {
+        V[i] = i;
+    }
+
+    int range[2] = {0, N};
+    pthread_t thread;
+    pthread_create(&thread, NULL, somme, (void*) range);
+    pthread_join(thread, NULL);
+
+    return 0;
+}
+
+Q7:
+#define NUM_THREADS 10
+
+void* somme(void* arg) {
+    int* range = (int*) arg;
+    int debut = range[0];
+    int fin = range[1];
+
+    long sum = 0;
+    for (int i = debut; i < fin; i++) {
+        sum += V[i];
+    }
+
+    printf("Thread %ld: Somme de [%d, %d[ = %ld\n", pthread_self(), debut, fin, sum);
+    pthread_exit(NULL);
+}
+
+int main() {
+    pthread_t threads[NUM_THREADS];
+    int ranges[NUM_THREADS][2];
+    int segment_size = N / NUM_THREADS;
+
+    for (int i = 0; i < NUM_THREADS; i++) {
+        ranges[i][0] = i * segment_size;
+        ranges[i][1] = (i == NUM_THREADS - 1) ? N : (i + 1) * segment_size;
+        pthread_create(&threads[i], NULL, somme, (void*) ranges[i]);
+    }
+
+    for (int i = 0; i < NUM_THREADS; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    return 0;
+}
+
+Q9:
+long sum = 0;
+
+void* somme(void* arg) {
+    int* range = (int*) arg;
+    int debut = range[0];
+    int fin = range[1];
+
+    long local_sum = 0;
+    for (int i = debut; i < fin; i++) {
+        local_sum += V[i];
+    }
+
+    sum += local_sum; // Problème potentiel d'accès concurrent
+    pthread_exit(NULL);
+}
+
+Nous ajoutons une variable globale sum et observons qu’elle peut être mise à jour de manière incorrecte.
+En lançant plusieurs exécutions, on constate que sum peut être incorrecte à cause des accès concurrents.
+
+Q8:
+#include <stdio.h>
+#include <pthread.h>
+
+#define N 1000
+#define NUM_THREADS 10
+
+int V[N];
+long sum = 0;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void* somme(void* arg) {
+    int* range = (int*) arg;
+    int debut = range[0];
+    int fin = range[1];
+
+    long local_sum = 0;
+    for (int i = debut; i < fin; i++) {
+        local_sum += V[i];
+    }
+
+    pthread_mutex_lock(&mutex);
+    sum += local_sum;
+    pthread_mutex_unlock(&mutex);
+
+    pthread_exit(NULL);
+}
+
+int main() {
+    pthread_t threads[NUM_THREADS];
+    int ranges[NUM_THREADS][2];
+    int segment_size = N / NUM_THREADS;
+
+    for (int i = 0; i < N; i++) {
+        V[i] = i;
+    }
+
+    for (int i = 0; i < NUM_THREADS; i++) {
+        ranges[i][0] = i * segment_size;
+        ranges[i][1] = (i == NUM_THREADS - 1) ? N : (i + 1) * segment_size;
+        pthread_create(&threads[i], NULL, somme, (void*) ranges[i]);
+    }
+
+    for (int i = 0; i < NUM_THREADS; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    printf("Somme totale = %ld\n", sum);
+    return 0;
+}
+
+Nous utilisons un pthread_mutex_t pour garantir l’exclusion mutuelle sur sum.
+Sans mutex : sum peut être incorrecte à cause des accès concurrents.
+Avec mutex : sum est toujours correcte car l'accès est protégé.
