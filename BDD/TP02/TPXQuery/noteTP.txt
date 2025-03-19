@@ -1,0 +1,153 @@
+Q1:
+for $f in doc("refbib.xml")/bib/livre
+    where $f/titre = "Data on the Web"
+    return
+        for $a in $f/auteur
+            return ($a/prenom, $a/nom)
+
+Le résultat de cette requête est:
+
+<prenom>Serge</prenom>
+<nom>Abiteboul</nom>
+<prenom>Peter</prenom>
+<nom>Buneman</nom>
+<prenom>Dan</prenom>
+<nom>Suciu</nom>
+
+Q2:
+<name>W.Stevens</name>
+<name>W.Stevens</name>
+<name>W.Stevens</name>
+<name>SergeAbiteboul</name>
+<name>PeterBuneman</name>
+<name>DanSuciu</name>
+
+Pour afficher les résultats comme ci-dessus, il faut:
+
+<auteurs>{
+    for $f in doc("refbib.xml")/bib/livre
+        return
+            for $a in $f/auteur
+                return 
+                    <nom>{$a/prenom/text()}{$a/nom/text()}</nom>
+}</auteurs>
+
+Q3:
+<biblio>
+   <livre annee="1994">
+      <titre>TCP/IP Illustrated</titre>
+   </livre>
+   <livre annee="1995">
+      <titre>Advanced Programming in the Unix environment</titre>
+   </livre>
+</biblio>
+
+Pour afficher les résultats comme ci-dessus, il faut:
+
+<biblio>{
+    for $f in doc("refbib.xml")/bib/livre
+        where $f/edition = "Addison-Wesley" and $f/@annee > 1992
+            return 
+                <livre annee="{$f/@annee}">
+                    <titre>
+                        {$f/titre/text()}
+                    </titre>
+                </livre>
+}</biblio>
+
+Q4:
+<titre>Advanced Programming in the Unix environment</titre>
+<titre>Advanced Programming in the Unix environment</titre>
+<titre>Data on the Web</titre>
+<titre>TCP/IP Illustrated</titre>
+<titre>The Economics of Technology and Content for Digital TV</titre>
+
+Pour afficher les résultats comme ci-dessus, il faut:
+
+for $f in doc("refbib.xml")/bib/livre
+    order by $f/titre
+    return
+        $f/titre
+
+Q5:
+<auteur>
+   <nom>Stevens</nom>
+   <prenom>W.</prenom>
+   <livres>
+      <titre>TCP/IP Illustrated</titre>
+      <titre>Advanced Programming in the Unix environment</titre>
+      <titre>Advanced Programming in the Unix environment</titre>
+   </livres>
+</auteur>
+<auteur>
+   <nom>Abiteboul</nom>
+   <prenom>Serge</prenom>
+   <livres>
+      <titre>Data on the Web</titre>
+   </livres>
+</auteur>
+<auteur>
+   <nom>Buneman</nom>
+   <prenom>Peter</prenom>
+   <livres>
+      <titre>Data on the Web</titre>
+   </livres>
+</auteur>
+<auteur>
+   <nom>Suciu</nom>
+   <prenom>Dan</prenom>
+   <livres>
+      <titre>Data on the Web</titre>
+   </livres>
+</auteur>
+
+Pour afficher les résultats comme ci-dessus, il faut:
+
+for $auteurStr in distinct-values(doc("refbib.xml")/bib/livre/auteur/concat(nom, " ", prenom))
+    let $nom := substring-before($auteurStr, " ")
+    let $prenom := substring-after($auteurStr, " ")
+    let $titres := for $a in doc("refbib.xml")/bib/livre
+                   where $a/auteur/nom = $nom and $a/auteur/prenom = $prenom
+                   return $a/titre
+    return 
+        <auteur>
+            <nom>{$nom}</nom>
+            <prenom>{$prenom}</prenom>
+            <livres>{
+                for $titre in $titres
+                return <titre>{$titre/text()}</titre>
+            }</livres>
+        </auteur>
+
+Q6:
+<resultats>
+   <prixmin titre="TCP/IP Illustrated">
+      <prix>65.95</prix>
+   </prixmin>
+   <prixmin titre="Advanced Programming in the Unix environment">
+      <prix>64.35</prix>
+   </prixmin>
+   <prixmin titre="Advanced Programming in the Unix environment">
+      <prix>69.95</prix>
+   </prixmin>
+   <prixmin titre="Data on the Web">
+      <prix>39.95</prix>
+   </prixmin>
+   <prixmin titre="The Economics of Technology and Content for Digital TV">
+      <prix>129.95</prix>
+   </prixmin>
+</resultats>
+
+Pour afficher les résultats comme ci-dessus, il faut:
+
+<resultats>{
+    for $f in doc("refbib.xml")/bib/livre
+        return
+            <prixmin titre="{$f/titre}">
+                <prix>
+                        {$f/prix/text()}
+                </prix>            
+            </prixmin>
+}</resultats>
+
+Q7:
