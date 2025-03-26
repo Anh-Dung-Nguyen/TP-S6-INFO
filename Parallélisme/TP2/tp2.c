@@ -7,6 +7,7 @@
 #include <semaphore.h>
 
 #define N 10
+
 int buffer[N];
 int in = 0, out = 0, count = 0;
 
@@ -52,13 +53,21 @@ void* consumer(void* arg) {
     for (int i = 0; i < N/2; i++) {
         int v = get();
         printf("Consommateur %d consumer: %d\n", id, i + id * 100);
-  }
-  return NULL;
+    }
 }
 
 int main() {
-  pthread_t producers[2], consumers[2];
-  int ids[2] = {0, 1};
+    pthread_t producers[2], consumers[2];
+    int ids[2] = {0, 1};
 
-  pthread_create(&producers[0], NULL, producer, &ids[0]);
+    pthread_create(&producers[0], NULL, producer, &ids[0]);
+    pthread_create(&producers[1], NULL, producer, &ids[1]);
+    pthread_create(&consumers[0], NULL, consumer, &ids[0]);
+    pthread_create(&consumers[1], NULL, consumer, &ids[1]);
+
+    for (int i = 0; i < 2; i++) {
+        pthread_join(producers[i], NULL);
+        pthread_join(consumers[i], NULL);
+    }
+    return 0;
 }
