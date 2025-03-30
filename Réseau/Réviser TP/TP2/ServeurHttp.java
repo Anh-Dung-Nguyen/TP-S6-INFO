@@ -8,7 +8,7 @@ public class ServeurHttp extends Thread
     static String entete ="";
     static String enteteReponse="";
     static int port = 8888;  // port par défaut
-    static String racine = "/home/mbertier/Cours/Reseaux/TP/tp2/code/www";  // sous répertoire racine du serveur
+    static String racine = "index.html";  // sous répertoire racine du serveur
 
     Socket s;
 
