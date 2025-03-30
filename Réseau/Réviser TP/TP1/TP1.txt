@@ -1,0 +1,176 @@
+Q1:
+Le nom de la machine -> hostname
+L'adresse IP de la machine -> ifconfig
+			      ip -a addr
+			      ip addr
+			      ip a | grep "inet"
+			      
+Q2:
+Les interférences -> ip link show
+Dans notre machine, on a: lo -> MTU 65536
+			  eno2 -> MTU 1500
+			  wlo1 -> MTU 1500
+			  docker0 -> MTU 1500
+
+Q3:
+La table de routage -> route
+		       route -n
+		       ip route show
+Informations obtenues: 
+Destination: L’adresse du réseau de destination.
+Gateway (Passerelle): L’adresse IP du routeur ou passerelle utilisée pour atteindre la destination.
+Genmask (Masque de sous-réseau): Détermine la portée de l’adresse de destination.
+Flags: Indique des informations comme :
+	U : La route est activée.
+    	G : La route passe par une passerelle.
+    	H : La destination est un hôte.
+Metric: La priorité de la route (plus elle est basse, plus la route est prioritaire).
+Iface (Interface réseau): L’interface utilisée pour envoyer les paquets sur cette route (ex. eth0, wlan0).
+
+Q4:
+sudo apt install openssh-server
+ssh nom-machine@ip-adresse
+Informations obtenues: c'est l'information de la machine de mon binôme
+
+Q5:
+La table ARP -> arp
+		ip neigh show
+La table ARP contient les correspondances entre les adresses IP et les adresses MAC des appareils du réseau local. Chaque entrée associe une adresse IP à une adresse MAC pour permettre la communication sur le réseau Ethernet.
+Informations obtenues :
+	Adresse: La passerelle par défaut (généralement le routeur de ton réseau local).
+	HWtype: La connexion utilise Ethernet (ou Wi-Fi, car Wi-Fi fonctionne aussi sur Ethernet).
+	HWaddress: L'adresse MAC de la passerelle. Chaque équipement réseau a une adresse MAC unique.
+	Flags: C signifie que cette adresse est actuellement dans le cache ARP et est confirmée.
+	Iface: L'interface réseau utilisée, ici wlo1, ce qui indique une connexion Wi-Fi.
+
+Q6 - Q7 - Q8 - Q9:
+sudo apt install wireshark
+sudo wireshark
+
+Q10 - Q11:
+Le message ARP est broadcast sur le réseau
+Un message ARP contient les champs suivants :
+	Adresse MAC source
+	Adresse MAC destination
+	Adresse IP source
+	Adresse IP destination
+	Type d’opération (requête ou réponse)
+
+Q12:
+Un message ICMP contient :
+	Type
+	Code
+	Checksum
+	Identifiant et numéro de séquence
+
+Q13:
+L'Echo request -> le datagramme écho teste la connectivité d'un équipement (utilisé par ping)
+L'Echo reply -> le datagramme de réponse à une demande d'écho contient les mêmes données que la requête
+
+Q14 - Q15:
+ping -c 1 -s 2000 10.9.24.87
+811	5.823528754	10.9.25.85	10.9.30.142	IPv4	1514	Fragmented IP protocol (proto=ICMP 1, off=0, ID=2071) [Reassembled in #812]
+812	5.823559559	10.9.25.85	10.9.30.142	ICMP	562	Echo (ping) request  id=0x0008, seq=1/256, ttl=64 (reply in 857)
+
+850	6.054728582	10.9.30.142	10.9.25.85	IPv4	1514	Fragmented IP protocol (proto=ICMP 1, off=0, ID=a2ed) [Reassembled in #857]
+857	6.055436792	10.9.30.142	10.9.25.85	ICMP	562	Echo (ping) reply    id=0x0008, seq=1/256, ttl=64 (request in 812)
+
+Le paquet IP spécifie qu'il est le premier (offset=0) d'un groupe fragmenté (More fragments=1).
+Sa taille est de 1500 octets (=MTU) + 14 octets d'entête Ethernet.
+
+Le paquet ICMP a un offset de 1480 octets (=MTU - 20 octets d'entête IP) donc ce n'est pas le premier.
+More fragments=0 indique que c'est le dernier fragment.
+
+Q16:
+Les flags et l'offset sont différents entre les deux paquets.
+
+Q17:
+ping www.google.com -> Envoie des requêtes à un serveur de Google, il renvoie une réponse ICMP Echo Reply avec le temps de réponse
+ping www.nust.na et ping www.nmmu.ac.za-> Envoie des requêtes à un serveur, cela permet de vérifier la connexion avec un serveur en Afrique
+ping www.kitakyu-u.ac.jp et ping www.kyoto-u.ac.jp -> Vérifie l'accessibilité d'un serveur universitaire au Japon, le délai de réponse sera plus long en raison de la distance géographique.
+
+Q18:
+traceroute -I ip_adresse ne fonctionne pas chez moi
+
+Q19:
+host www.free.fr -> IP: 212.27.48.10
+host www.insa-rennes.fr -> IP: 193.52.94.58
+
+nslookup www.free.fr -> Nom: www.free.fr
+nslookup www.insa-rennes.fr -> Nom: www-vmp-app01.insa-rennes.fr (nom canonique: www-vmp-app01.insa-rennes.fr)
+
+dig -> permet d'interroger un serveur DNS pour obtenir des informations sur le domaine, il renvoie principalement l’adresse IP
+dig www.free.fr
+-> ANSWER SECTION: indique que www.free.fr correspond à l’adresse IP 212.27.48.10.
+-> Query time: 0 msec signifie que la requête a pris 0 millisecondes.
+-> SERVER: 127.0.0.53 indique que la requête a été résolue par Google Public DNS.
+dig www.insa-rennes.fr
+-> ANSWER SECTION: indique que www.free.fr correspond à l’adresse IP 193.52.94.58.
+-> Query time: 0 msec signifie que la requête a pris 0 millisecondes.
+-> SERVER: 127.0.0.53 indique que la requête a été résolue par Google Public DNS.
+
+Q20:
+Port de destination : souvent 80 (HTTP)
+
+Q21:
+L'entête TCP fait 40 octets.
+
+Q22:
+TCP Segment Len: 0 -> car ce paquet est le premier d'un handshake
+
+Q23:
+paquet TCP (SYN)
+Le numéro de séquence est 142776364.
+La taille de la fenêtre est 32120 octets.
+Cela veut dire que le client peut recevoir 32120 octets de données avant que le serveur ne doive attendre un acquittement.
+
+Q24:
+paquet SYN-ACK (Ethernet)
+Destination: f0:77:c3:db:a0:ec
+Source: 4c:5e:0c:c9:4f:1d
+Type: IPv6 (0x86dd)
+
+paquet SYN-ACK (IP)
+Source: 2600:1f13:37c:1400:ba21:7165:5fc7:736e
+Destination: 2a06:e040:3502:4000:489e:4702:99a7:97cc
+Type: TCP(6)
+
+paquet SYN-ACK (TCP)
+Source: 80
+Destination: 40948
+Acknowledgment Number: 1 (relative ack number)
+Acknowledgment number (raw): 4071951760
+TCP Segment Len: 0
+Sequence Number: 0 (relative sequence number)
+Sequence Number (raw): 628501767
+Calculated window size: 26847
+
+Q25:
+MSS Value: 1440 octets
+
+Q26:
+paquet ACK
+Sequence Number: 1 (relative sequence number)
+Sequence Number (raw): 628501768
+Next Sequence Number: 1 (relative sequence number)
+Acknowledgment Number: 490 (relative ack number)
+Acknowledgment number (raw): 4071952249
+La taille: 32 bytes
+
+Q27:
+Les numéros de séquence et d'acquittement sont incrémentés de la taille des données envoyées.
+
+Q28:
+La taille de données applicatives de HTTP du 200 OK est: 1632 bits
+
+Q29:
+La fragmentation des données peut se produire à deux niveaux principaux :
++ Au niveau de la couche Transport (TCP):
+	+ TCP segmente les données en fonction du MSS (Maximum Segment Size).
+	+ Le MSS est négocié lors du three-way handshake et définit la taille maximale d'un segment TCP sans fragmentation IP.
++ Au niveau de la couche Réseau (IP):
+	+ Si un paquet IP dépasse la MTU (Maximum Transmission Unit) du réseau, il est fragmenté par l’IP.
+	+ La MTU typique d’Ethernet est 1500 octets (hors en-têtes).
+Constatations dans Wireshark:
+	+ Le paquet ICMP est fragmenté en plusieurs paquets IP.
+	+ Les indicateurs de fragmentation dans l’en-tête IP
