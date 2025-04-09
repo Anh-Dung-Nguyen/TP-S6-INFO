@@ -1,0 +1,10 @@
+On constate :
+    Un gain de performance rapide entre 1 et 6 threads.
+    Ensuite, des gains de plus en plus faibles (loi des rendements décroissants).
+    Un palier vers 24 threads si mon processeur supporte bien tous les cœurs.
+
+Pourquoi ce comportement ?
+    Overhead de gestion des threads.
+    Saturation des ressources CPU.
+    Bande passante mémoire devient un goulot d’étranglement.
+    Limites physiques du processeur (vérifie avec lscpu ou /proc/cpuinfo).
