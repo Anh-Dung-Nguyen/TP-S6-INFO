@@ -1,0 +1,102 @@
+* {
+    box-sizing: content-box;
+  }
+  
+  *::before {
+    font-weight: bold;
+  }
+  
+  ResumeDeStage::before {
+    content: "Résumé de stage";
+    font-size: 20px;
+    text-align: center;
+  }
+  
+  ResumeDeStage {
+    margin: 20px top right;
+    display: grid;
+    grid-template-columns: max-content;
+    justify-content: center;
+    background-color: #323232;
+    color: white;
+  }
+  
+  context {
+    border: 20px solid;
+    margin: 20px;
+    padding: 20px;
+    display: grid;
+  }
+  
+  context {
+    border: 20px solid;
+    margin: 20px;
+    padding: 20px;
+    display: grid;
+  }
+  
+  infoGenerale > * {
+    border: 20px outset;
+    margin: 20px;
+    padding: 20px;
+  }
+  
+  etudiant::before {
+    content: "Nom de l'étudiant : ";
+  }
+  
+  entreprise {
+    display: grid;
+  }
+  
+  entreprise > * {
+    display: grid;
+  }
+  
+  tuteur::before {
+    content: "Nom du tuteur : ";
+  }
+  
+  adresse::before {
+    content: "Adresse de l'entreprise :";
+  }
+  
+  nomEntreprise {
+    display: grid;
+  }
+  
+  titreStage::before {
+    content: "Titre du stage : "
+  }
+  
+  titreStage {
+    display: grid;
+  }
+  
+  context {
+    border-style: double;
+    margin: 20px;
+    padding: 20px;
+    text-wrap: wrap;
+  }
+  
+  context > * {
+    display: grid;
+  }
+  
+  contextStage::before {
+    content: "Contexte du stage : "
+  }
+  
+  travailRealiser::before {
+    content: "Travail réalisé : "
+  }
+  
+  environnement::before {
+    content: "Environnement - mots-clés : "
+  }
+  
+  motCle::before {
+    content: "- "
+  }
+  

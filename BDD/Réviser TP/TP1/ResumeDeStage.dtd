@@ -1,0 +1,17 @@
+<!ELEMENT ResumeDeStage (infoGenerale, context)>
+<!ELEMENT infoGenerale (etudiant, entreprise, titreStage)>
+<!ELEMENT etudiant #PCDATA> <! -- PCDATA contient uniquement du texte brut-->
+<!ELEMENT entreprise (tuteur, adresse)>
+<!ELEMENT tuteur #PCDATA>
+<!ELEMENT adresse (nomEntreprise, rue, ville)>
+<!ELEMENT nomEntreprise (#PCDATA | br)*> <! -- nomEntreprise peut contenir du texte et des sauts de ligne br dans n'importe quel ordre et en nombre illimité. -->
+<!ELEMENT br EMPTY> <! -- br est un élément vide, comme en HTML, utilisé ici pour faire des retours à la ligne. -->
+<!ELEMENT rue #PCDATA>
+<!ELEMENT ville #PCDATA>
+<!ELEMENT titreStage #PCDATA>
+<!ELEMENT context (contextStage, travailRealiser, environnement, apport)>
+<!ELEMENT contextStage (#PCDATA | br)*> <! -- le contenu peut alterner entre texte et br. -->
+<!ELEMENT travailRealiser #PCDATA>
+<!ELEMENT environnement (motCle+)> <! -- contient au moins un motCle -->
+<!ELEMENT motCle #PCDATA>
+<!ELEMENT apport #PCDATA>
