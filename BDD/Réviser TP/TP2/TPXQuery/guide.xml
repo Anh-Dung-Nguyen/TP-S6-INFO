@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<Restaurants>
+<Restaurant categorie="***">
+	<Nom>Le Romantique </Nom>
+	<Adresse>
+		<Num>8</Num>
+		<Rue>avenue A. Piat</Rue>
+		<Zip>14000</Zip>
+		<Ville>Cabourg</Ville>
+	</Adresse>
+	<Telephone>02 31 24 10 92</Telephone>
+	<Fax>02 31 28 99 09</Fax>
+	<Menu Nom="Menu de la mer" Prix="40">
+		<Entrées>
+			<Entrée>Plateau de fruits de mer</Entrée>
+		</Entrées>
+		<Plats>
+			<Plat>Terrine de canard</Plat>
+			<Plat>Filet de boeuf</Plat>
+		</Plats>
+		<Desserts>
+			<Dessert>Profiterolles</Dessert>
+		</Desserts>
+	</Menu>
+	<Menu Nom="Carte" Prix="27">Choix selon carte</Menu>
+	<Commentaires>
+		<Commentaire>Excellent rapport qualité-prix</Commentaire>
+		<Commentaire>?</Commentaire>
+	</Commentaires>
+</Restaurant>
+<Restaurant categorie="***">
+	<Nom>La ferme Saint-Simon </Nom>
+	<Adresse>
+		<Num>6</Num>
+		<Rue>rue Saint Simon</Rue>
+		<Zip>75007</Zip>
+		<Ville>Paris</Ville>
+	</Adresse>
+	<Telephone>01 45 48 35 74</Telephone>
+	<Telephone>01 45 48 35 75</Telephone>
+	<Manager>Francis Vandenhende</Manager>
+	<Manager>Denise Fabre</Manager>
+	<Menu Nom="Menu du marché" Prix="86">
+		<Entrées>
+			<Entrée>Salade de spaghetti</Entrée>
+		</Entrées>
+		<Plats>
+			<Plat>Terrine de canard et mache</Plat>
+			<Plat>Filet de bar et oranges</Plat>
+		</Plats>
+		<Desserts>
+			<Dessert>Délice mandarine</Dessert>
+		</Desserts>
+	</Menu>
+	<Commentaires>
+		<Commentaire>All of Paris politicians make this their place of habit:?</Commentaire>
+		<Commentaire>?</Commentaire>
+	</Commentaires>
+</Restaurant>
+</Restaurants>
