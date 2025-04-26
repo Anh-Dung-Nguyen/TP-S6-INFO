@@ -1,0 +1,519 @@
+        -:    0:Source:ngram.c
+        -:    0:Graph:ngram.gcno
+        -:    0:Data:ngram.gcda
+        -:    0:Runs:7
+        -:    1:/*
+        -:    2: * Analyse n-grams of a text file.
+        -:    3: */
+        -:    4:
+        -:    5:#include <stdio.h>
+        -:    6:#include <stdlib.h>
+        -:    7:#include <time.h>
+        -:    8:#include "string.h"
+        -:    9:
+        -:   10:size_t Strlen(const char *s);
+        -:   11:
+        -:   12:/* Some statistics */
+        -:   13:int wcnt = 0;       /* Number of n-grams */
+        -:   14:int ucnt = 0;       /* Number of unique n-grams */
+        -:   15:int mcnt = 0;       /* Count of most frequent n-grams */
+        -:   16:int scnt = 0;       /* Count of singleton n-grams */
+        -:   17:char *mstring = ""; /* Most frequent n-grams */
+        -:   18:int llen = 0;       /* Length of the longest n-gram */
+        -:   19:char *lstring = ""; /* Longest n-gram */
+        -:   20:int lcnt = 0;       /* Number of n-grams having maximum length */
+        -:   21:
+        -:   22:/* Convert string to lower case */
+  5871667:   23:void lower(char *s) {
+        -:   24:  int i;
+        -:   25:
+ 41405720:   26:  for (i = 0; i < Strlen(s); i++)
+ 35534053:   27:    if (s[i] >= 'A' && s[i] <= 'Z')
+  1420417:   28:      s[i] -= ('A' - 'a');
+  5871667:   29:}
+        -:   30:
+        -:   31:/* Compute length of string */
+ 48464064:   32:size_t Strlen(const char *s) { return strlen(s); }
+        -:   33:
+        -:   34:/* The hash table */
+        -:   35:
+        -:   36:typedef struct Helem {
+        -:   37:  char *word;
+        -:   38:  int freq;
+        -:   39:  struct Helem *next;
+        -:   40:} h_rec, *h_ptr;
+        -:   41:
+        -:   42:h_ptr *htable;
+        -:   43:int tsize;
+        -:   44:
+        7:   45:static void new_table(int size) {
+        7:   46:  tsize = size;
+        7:   47:  htable = (h_ptr *)calloc(size, sizeof(h_ptr));
+        7:   48:  if (!htable) {
+    #####:   49:    fprintf(stderr, "Couldn't allocate hash array, exiting\n");
+    #####:   50:    exit(1);
+        -:   51:  }
+        7:   52:}
+        -:   53:
+  1012745:   54:static h_ptr new_elem(char *s) {
+  1012745:   55:  h_ptr result = (h_ptr)malloc(sizeof(h_rec));
+  1012745:   56:  int wlen = Strlen(s);
+  1012745:   57:  if (wlen > llen) {
+       64:   58:    lstring = s;
+       64:   59:    llen = wlen;
+       64:   60:    lcnt = 1;
+  1012681:   61:  } else if (wlen == llen)
+       82:   62:    lcnt++;
+  1012745:   63:  if (!result) {
+    #####:   64:    fprintf(stderr, "Couldn't allocate hash element, exiting\n");
+    #####:   65:    exit(1);
+        -:   66:  }
+        -:   67:
+  1012745:   68:  result->word = s;
+  1012745:   69:  result->freq = 1;
+  1012745:   70:  return result;
+        -:   71:}
+        -:   72:
+        -:   73:/* Hash function */
+  5871667:   74:unsigned h_fun(char *s) {
+  5871667:   75:    unsigned val = 0;
+        -:   76:    int c;
+ 41405720:   77:    while ((c = *s++))
+ 35534053:   78:      val = ((val ^ c) << 4) | ((val >> 28) & 0xF);
+  5871667:   79:    return val % tsize;
+        -:   80:}
+        -:   81:
+  1012745:   82:char *save_string(char *s) {
+  1012745:   83:  char *result = (char *)malloc(Strlen(s) + 1);
+  1012745:   84:  if (!result) {
+    #####:   85:    fprintf(stderr, "Couldn't allocate space for string, exiting\n");
+    #####:   86:    exit(1);
+        -:   87:  }
+  1012745:   88:  strcpy(result, s);
+  1012745:   89:  return result;
+        -:   90:}
+        -:   91:
+        -:   92:/* Search for string in the linked list. If the string is found, its frequency is updated; otherwise, it is added to the list. Returns the updated list */
+  5871667:   93:h_ptr find_elem(h_ptr ls, char *s) {
+  5871667:   94:  h_ptr elem = ls;
+1433800409:   95:  for (elem = ls; elem; elem = elem->next) {
+1432787664:   96:    char *word = elem->word;
+        -:   97:    // Check if the word matches the string
+1432787664:   98:    if (strcmp(s, word) == 0) {
+  4858922:   99:      int freq = ++elem->freq;
+  4858922:  100:      if (freq > mcnt) {
+   112991:  101:        mcnt = freq;
+   112991:  102:        mstring = word;
+        -:  103:      }
+  4858922:  104:      return ls;
+        -:  105:    }
+        -:  106:  }
+        -:  107:  // If no matching element is found, create new element and add to list
+  1012745:  108:  elem = new_elem(save_string(s));
+  1012745:  109:  ucnt++;
+  1012745:  110:  elem->next = ls;
+  1012745:  111:  return elem;
+        -:  112:}
+        -:  113:
+        -:  114:/* Comparison function for sorting */
+  3965911:  115:int compare_elem(const void *velem1, const void *velem2) {
+  3965911:  116:  h_ptr elem1 = *(h_ptr *)velem1;
+  3965911:  117:  h_ptr elem2 = *(h_ptr *)velem2;
+  3965911:  118:  return elem2->freq - elem1->freq;
+        -:  119:}
+        -:  120:
+        -:  121:/* Sort hash table elements by decreasing frequency */
+        4:  122:h_ptr sort_words() {
+        4:  123:  h_ptr ls = NULL;
+        -:  124:  h_ptr elem;
+        4:  125:  h_ptr *array = calloc(ucnt, sizeof(h_ptr));
+        -:  126:  int i, j;
+        4:  127:  int cnt = 0;
+        4:  128:  scnt = 0; /* Count singletons */
+     4100:  129:  for (i = 0; i < tsize; i++)
+   663908:  130:    for (elem = htable[i]; elem; elem = elem->next) {
+   659812:  131:      if (elem->freq == 1)
+   466924:  132:        scnt++;
+        -:  133:      /* Insert element into array in sorted order (insertion sort) */
+21366235644:  134:      for (j = cnt; j > 0 && elem->freq > array[j - 1]->freq; j--)
+21365575832:  135:        array[j] = array[j - 1];
+   659812:  136:      array[j] = elem;
+   659812:  137:      cnt++;
+        -:  138:    }
+        4:  139:  ls = array[0];
+   659812:  140:  for (j = 0; j < cnt - 1; j++)
+   659808:  141:    array[j]->next = array[j + 1];
+        4:  142:  array[cnt - 1]->next = NULL;
+        4:  143:  free((void *)array);
+        4:  144:  return ls;
+        -:  145:}
+        -:  146:
+  5871667:  147:void insert_string(char *s) {
+        -:  148:  int index;
+  5871667:  149:  lower(s);
+  5871667:  150:  index = h_fun(s);
+  5871667:  151:  htable[index] = find_elem(htable[index], s);
+  5871667:  152:}
+        -:  153:
+        -:  154:/* Sort hash table elements by decreasing frequency */
+        3:  155:h_ptr sort_words2() {
+        3:  156:  h_ptr ls = NULL;
+        -:  157:  h_ptr elem;
+        3:  158:  h_ptr *array = calloc(ucnt, sizeof(h_ptr));
+        -:  159:  int i, j;
+        3:  160:  int cnt = 0;
+        3:  161:  scnt = 0; /* Count singletons */
+     3075:  162:  for (i = 0; i < tsize; i++)
+   356005:  163:    for (elem = htable[i]; elem; elem = elem->next) {
+   352933:  164:      if (elem->freq == 1)
+   242044:  165:        scnt++;
+   352933:  166:      array[cnt] = elem;
+   352933:  167:      cnt++;
+        -:  168:    }
+        3:  169:  qsort((void *)array, cnt, sizeof(h_ptr), compare_elem);
+        3:  170:  ls = array[0];
+   352933:  171:  for (j = 0; j < cnt - 1; j++)
+   352930:  172:    array[j]->next = array[j + 1];
+        3:  173:  array[cnt - 1]->next = NULL;
+        3:  174:  free((void *)array);
+        3:  175:  return ls;
+        -:  176:}
+        -:  177:
+        -:  178:/* Extract word from file */
+        -:  179:#define BSIZE 1024
+        -:  180:char buf[BSIZE];
+        -:  181:int bufvalid = 0;
+        -:  182:FILE *infile;
+        -:  183:
+        7:  184:void init_token(FILE *in) {
+        7:  185:  bufvalid = 0;
+        7:  186:  infile = in;
+        7:  187:}
+        -:  188:
+        -:  189:static char *skipchar = " \t\n\r.,:;/<>()[]{}?!\"-'\0xc2\0xa0";
+        -:  190:
+        -:  191:/* Keep getting tokens.  Return NULL when no more */
+  5871677:  192:char *get_word() {
+  5871677:  193:  char *s = NULL;
+        -:  194:  while (1) {
+  6123334:  195:    if (bufvalid) {
+  6123327:  196:      s = strtok(NULL, skipchar);
+  6123327:  197:      if (s)
+  5219256:  198:        break;
+        -:  199:    }
+   904078:  200:    if (!fgets(buf, BSIZE, infile))
+        7:  201:      return NULL;
+   904071:  202:    bufvalid = 1;
+   904071:  203:    s = strtok(buf, skipchar);
+   904071:  204:    if (s)
+   652414:  205:      break;
+        -:  206:  }
+  5871670:  207:  wcnt++;
+  5871670:  208:  return s;
+        -:  209:}
+        -:  210:
+        -:  211:#define MAXNG 10
+        -:  212:
+  5871674:  213:char *get_token(int ngram) {
+        -:  214:  /* Buffer of last ngram-1 tokens */
+        -:  215:  static char token_buf[MAXNG][BSIZE];
+        -:  216:  static int first = 1;
+        -:  217:  static int bindex = 0; /* In which buffer to insert next token */
+        -:  218:  static char sbuf[BSIZE];
+  5871674:  219:  char *nextpos = sbuf;
+        -:  220:  int i;
+        -:  221:  int index;
+        -:  222:
+  5871674:  223:  if (ngram == 1)
+  3355244:  224:    return get_word();
+  2516430:  225:  if (first) {
+        -:  226:    /* Get ngram-1 tokens */
+        6:  227:    while (bindex < ngram - 1) {
+        3:  228:      char *word = get_word();
+        3:  229:      if (!word) {
+    #####:  230:        return NULL; /* Document doesn't have enough tokens */
+        -:  231:      }
+        3:  232:      strcpy(token_buf[bindex++], word);
+        -:  233:    }
+        3:  234:    first = 0;
+        -:  235:  }
+        -:  236:  /* Get new token */
+  2516430:  237:  char *word = get_word();
+  2516430:  238:  if (!word) {
+        3:  239:    return NULL; /* No more ngrams */
+        -:  240:  }
+  2516427:  241:  strcpy(token_buf[bindex++], word);
+  2516427:  242:  if (bindex >= MAXNG)
+   251643:  243:    bindex = 0;
+        -:  244:  /* Generate string of last ngram-1 tokens */
+  2516427:  245:  index = bindex - ngram;
+  2516427:  246:  if (index < 0)
+   503283:  247:    index += MAXNG;
+  7549281:  248:  for (i = 0; i < ngram; i++) {
+  5032854:  249:    if (i != 0)
+  2516427:  250:      *nextpos++ = ' ';
+  5032854:  251:    word = token_buf[index];
+  5032854:  252:    strcpy(nextpos, word);
+  5032854:  253:    nextpos += Strlen(word);
+  5032854:  254:    index++;
+  5032854:  255:    if (index >= MAXNG)
+   503283:  256:      index = 0;
+        -:  257:  }
+        -:  258:#if 0
+        -:  259:     printf("Next n-gram = '%s'\n", sbuf);
+        -:  260:#endif
+  2516427:  261:  return sbuf;
+        -:  262:}
+        -:  263:
+        -:  264:/* Find statistics of word frequency in document */
+        7:  265:void word_freq(FILE *src, int shown, int ngram, int size) {
+        -:  266:  char *s;
+        -:  267:  h_ptr ls;
+        -:  268:
+        7:  269:  init_token(src);
+        7:  270:  new_table(size);
+        -:  271:
+  5871674:  272:  while ((s = get_token(ngram))) {
+  5871667:  273:    insert_string(s);
+        -:  274:  }
+        7:  275:  printf("Results:\n");
+        7:  276:  if (shown > 0) {
+        7:  277:    ls = sort_words2();
+       41:  278:    while (ls && shown--) {
+       34:  279:      printf("%d\t'%s'\n", ls->freq, ls->word);
+       34:  280:      ls = ls->next;
+        -:  281:    }
+        -:  282:  }
+        7:  283:  printf("%d n-grams, %d unique, %d singletons.  Most common (%d) = '%s'.  "
+        -:  284:         "Longest (%d) = '%s' (length %d) \n",
+        -:  285:         wcnt, ucnt, scnt, mcnt, mstring, lcnt, lstring, llen);
+        7:  286:}
+        -:  287:
+        -:  288:/* The code below processes options provided via command line arguments */
+        -:  289:typedef enum { INT_OPTION, DOUBLE_OPTION, STRING_OPTION } option_t;
+        -:  290:
+        -:  291:typedef struct {
+        -:  292:  char *name;
+        -:  293:  option_t type;
+        -:  294:  union {
+        -:  295:    int *i;
+        -:  296:    double *d;
+        -:  297:    char **s;
+        -:  298:  } valp;
+        -:  299:} option_entry;
+        -:  300:
+        -:  301:#define MAX_OPTION 100
+        -:  302:static option_entry options[MAX_OPTION];
+        -:  303:
+        -:  304:static int option_count = 0;
+        -:  305:
+        -:  306:/* Determine length of string match */
+       52:  307:static int match_length(char *s, char *t) {
+       52:  308:  int result = 0;
+      101:  309:  while (*s == *t) {
+       59:  310:    result++;
+       59:  311:    if (*s == '\0')
+       10:  312:      break;
+       49:  313:    s++;
+       49:  314:    t++;
+        -:  315:  }
+       52:  316:  return result;
+        -:  317:}
+        -:  318:
+    #####:  319:void usage(char *prog) {
+        -:  320:  int j;
+    #####:  321:  fprintf(stderr, "Usage: %s", prog);
+    #####:  322:  for (j = 0; j < option_count; j++) {
+    #####:  323:    switch (options[j].type) {
+    #####:  324:    case INT_OPTION:
+    #####:  325:      fprintf(stderr, " [-%s (%d)]", options[j].name, *(options[j].valp.i));
+    #####:  326:      break;
+    #####:  327:    case DOUBLE_OPTION:
+    #####:  328:      fprintf(stderr, " [-%s (%.2f)]", options[j].name, *(options[j].valp.d));
+    #####:  329:      break;
+    #####:  330:    case STRING_OPTION:
+    #####:  331:      fprintf(stderr, " [-%s (%s)]", options[j].name, *(options[j].valp.s));
+    #####:  332:      break;
+        -:  333:    }
+        -:  334:  }
+    #####:  335:  fprintf(stderr, "\n");
+    #####:  336:  exit(1);
+        -:  337:}
+        -:  338:
+        -:  339:/* Determine which option is the best match. */
+       13:  340:static int find_option(char *prog, char *name) {
+       13:  341:  int sofar = -1;
+       13:  342:  int sofar_length = 0;
+        -:  343:  int i;
+       13:  344:  int ambiguous = 0;
+       65:  345:  for (i = 0; i < option_count; i++) {
+       52:  346:    int length = match_length(options[i].name, name);
+       52:  347:    if (length > sofar_length) {
+       13:  348:      sofar = i;
+       13:  349:      sofar_length = length;
+       13:  350:      ambiguous = 0;
+       39:  351:    } else if (length > 0 && length == sofar_length) {
+    #####:  352:      ambiguous = 1;
+        -:  353:    }
+        -:  354:  }
+       13:  355:  if (sofar_length == 0) {
+    #####:  356:    fprintf(stderr, "No match found to option '%s'\n", name);
+    #####:  357:    usage(prog);
+       13:  358:  } else if (ambiguous) {
+    #####:  359:    fprintf(stderr, "Ambiguous option: '%s'\n", name);
+    #####:  360:    usage(prog);
+        -:  361:  }
+       13:  362:  return sofar;
+        -:  363:}
+        -:  364:
+       21:  365:void add_int_option(char *name, int *var) {
+       21:  366:  options[option_count].name = name;
+       21:  367:  options[option_count].type = INT_OPTION;
+       21:  368:  options[option_count].valp.i = var;
+       21:  369:  option_count++;
+       21:  370:}
+        -:  371:
+    #####:  372:void add_double_option(char *name, double *var) {
+    #####:  373:  options[option_count].name = name;
+    #####:  374:  options[option_count].type = DOUBLE_OPTION;
+    #####:  375:  options[option_count].valp.d = var;
+    #####:  376:  option_count++;
+    #####:  377:}
+        -:  378:
+        7:  379:void add_string_option(char *name, char **var) {
+        7:  380:  options[option_count].name = name;
+        7:  381:  options[option_count].type = STRING_OPTION;
+        7:  382:  options[option_count].valp.s = var;
+        7:  383:  option_count++;
+        7:  384:}
+        -:  385:
+        7:  386:int parse_options(int argc, char *argv[], char *otherargs[]) {
+        -:  387:  int i, j;
+        7:  388:  int ocount = 0;
+        -:  389:  float f;
+        7:  390:  char *prog = argv[0];
+       20:  391:  for (i = 1; i < argc; i++) {
+        -:  392:    /* Look for options */
+      13*:  393:    if (*argv[i] != '-') {
+        -:  394:      /* Must be another class of argument */
+    #####:  395:      if (otherargs)
+    #####:  396:        otherargs[ocount] = argv[i];
+    #####:  397:      ocount++;
+    #####:  398:      continue;
+        -:  399:    }
+       13:  400:    j = find_option(prog, argv[i] + 1);
+       13:  401:    i++; /* Move to next argument */
+       13:  402:    if (i >= argc) {
+    #####:  403:      fprintf(stderr, "Missing value for option %s\n", options[j].name);
+    #####:  404:      usage(prog);
+        -:  405:    }
+       13:  406:    switch (options[j].type) {
+        6:  407:    case INT_OPTION:
+        6:  408:      if (sscanf(argv[i], "%d", options[j].valp.i) != 1) {
+    #####:  409:        fprintf(stderr, "Can't parse argument '%s' as integer\n", argv[i]);
+    #####:  410:        usage(prog);
+        -:  411:      }
+        6:  412:      break;
+    #####:  413:    case DOUBLE_OPTION:
+    #####:  414:      if (sscanf(argv[i], "%f", &f) != 1) {
+    #####:  415:        fprintf(stderr, "Can't parse argument '%s' as double\n", argv[i]);
+    #####:  416:        usage(prog);
+        -:  417:      }
+    #####:  418:      *options[j].valp.d = f;
+    #####:  419:      break;
+        7:  420:    case STRING_OPTION:
+        7:  421:      *(options[j].valp.s) = argv[i];
+        7:  422:      break;
+    #####:  423:    default:
+    #####:  424:      fprintf(stderr, "Internal error.  Don't know option type %d\n",
+    #####:  425:              options[j].type);
+    #####:  426:      exit(1);
+        -:  427:    }
+        -:  428:  }
+        7:  429:  return ocount;
+        -:  430:}
+        -:  431:
+    #####:  432:static char *strsave(char *s) {
+    #####:  433:  char *result = (char *)malloc(strlen(s) + 1);
+    #####:  434:  strcpy(result, s);
+    #####:  435:  return result;
+        -:  436:}
+        -:  437:
+    #####:  438:void parse_option_file(char *prog, FILE *option_file) {
+        -:  439:  int j;
+        -:  440:  float f;
+        -:  441:  char name[50], val[50];
+    #####:  442:  while (fscanf(option_file, "%s %s", name, val) == 2) {
+    #####:  443:    if (name[0] != '-') {
+    #####:  444:      fprintf(stderr, "Need '-' before option '%s'\n", name);
+    #####:  445:      usage(prog);
+        -:  446:    }
+    #####:  447:    j = find_option(prog, name + 1);
+    #####:  448:    switch (options[j].type) {
+    #####:  449:    case INT_OPTION:
+    #####:  450:      if (sscanf(val, "%d", options[j].valp.i) != 1) {
+    #####:  451:        fprintf(stderr, "Can't parse argument '%s' as integer\n", val);
+    #####:  452:        usage(prog);
+        -:  453:      }
+    #####:  454:      break;
+    #####:  455:    case DOUBLE_OPTION:
+    #####:  456:      if (sscanf(val, "%f", &f) != 1) {
+    #####:  457:        fprintf(stderr, "Can't parse argument '%s' as double\n", val);
+    #####:  458:        usage(prog);
+        -:  459:      }
+    #####:  460:      *options[j].valp.d = f;
+    #####:  461:      break;
+    #####:  462:    case STRING_OPTION:
+    #####:  463:      *(options[j].valp.s) = strsave(val);
+    #####:  464:      break;
+    #####:  465:    default:
+    #####:  466:      fprintf(stderr, "Internal error.  Don't know option type %d\n",
+    #####:  467:              options[j].type);
+    #####:  468:      exit(1);
+        -:  469:    }
+        -:  470:  }
+    #####:  471:}
+        -:  472:
+        7:  473:void show_options(FILE *outfile) {
+        -:  474:  int i;
+        7:  475:  fprintf(outfile, "Used options:\n");
+       35:  476:  for (i = 0; i < option_count; i++) {
+       28:  477:    switch (options[i].type) {
+       21:  478:    case INT_OPTION:
+       21:  479:      fprintf(outfile, "%s\t%d\n", options[i].name, *(options[i].valp.i));
+       21:  480:      break;
+    #####:  481:    case DOUBLE_OPTION:
+    #####:  482:      fprintf(outfile, "%s\t%f\n", options[i].name, *(options[i].valp.d));
+    #####:  483:      break;
+        7:  484:    case STRING_OPTION:
+        7:  485:      if (*options[i].valp.s)
+        7:  486:        fprintf(outfile, "%s\t%s\n", options[i].name, *(options[i].valp.s));
+        7:  487:      break;
+        -:  488:    }
+        -:  489:  }
+        7:  490:}
+        -:  491:
+        7:  492:int main(int argc, char *argv[]) {
+        7:  493:  int shown = 1;
+        7:  494:  int size = 1024;
+        7:  495:  int ngram = 1;
+        7:  496:  char *fname = NULL;
+        7:  497:  FILE *infile = stdin;
+        7:  498:  add_int_option("shown", &shown);
+        7:  499:  add_int_option("size", &size);
+        7:  500:  add_int_option("ngram", &ngram);
+        7:  501:  add_string_option("file", &fname);
+        7:  502:  parse_options(argc, argv, NULL);
+        7:  503:  show_options(stdout);
+        7:  504:  if (fname) {
+        7:  505:    infile = fopen(fname, "r");
+        7:  506:    if (!infile) {
+    #####:  507:      fprintf(stderr, "Couldn't open file '%s'\n", fname);
+    #####:  508:      exit(1);
+        -:  509:    }
+        -:  510:  }
+        7:  511:  word_freq(infile, shown, ngram, size);
+        7:  512:  printf("Total time = %f seconds\n", (double)clock() / CLOCKS_PER_SEC);
+        7:  513:  fclose(infile);
+        7:  514:  return 0;
+        -:  515:}

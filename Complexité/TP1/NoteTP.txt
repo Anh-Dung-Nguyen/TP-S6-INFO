@@ -1,0 +1,54 @@
+Using the profile data
+    Format général :
+        Chaque ligne commence par un nombre suivi de ":" :
+            -: → Ligne non exécutable (par exemple, commentaires, déclarations)
+            #####: → Ligne exécutable mais jamais exécutée durant l'exécution testée
+            N: → Ligne exécutée N fois, où N est le nombre d'exécutions observées.
+
+    Exemples dans ton extrait :
+    Marqueur	Signification	                                Exemple
+    -:	        Ligne non exécutable (commentaire, directive)	-: 5:#include <stdio.h>
+    838809:	    Ligne exécutée 838 809 fois	                    838809: 23:void lower(char *s)
+    #####: 	    Ligne jamais exécutée	                        #####: 49:fprintf(stderr, ...)
+
+    Quelques observations rapides sur le programme :
+        Le programme lit un fichier texte, extrait des n-grammes (suite de n mots), et analyse leur fréquence.
+        Il utilise une table de hachage pour stocker les n-grammes.
+        Fonctions principales :
+            lower(char *s) : passe une chaîne en minuscules
+            h_fun(char *s) : calcule une valeur de hachage
+            insert_string(char *s) : insère une chaîne dans la table
+            get_word() / get_token(int ngram) : récupère un mot / un n-gramme du fichier
+            sort_words() : trie les n-grammes selon leur fréquence
+
+    Interprétation rapide :
+        Le cœur du programme (lower, h_fun, find_elem, get_word, etc.) est très bien couvert (exécuté des millions de fois).
+        Certaines branches d'erreur (fprintf(stderr, ...)) ne sont jamais atteintes (#####), ce qui est normal en général : ça correspond aux erreurs de malloc/calloc/fgets que ton test n'a pas simulées.
+        La fonction sort_words2() n'a pas été utilisée (##### partout dans cette fonction).
+        Le code est donc plutôt robuste et bien testé sur l'exécution réalisée.
+
+First optimisation
+    Why is sort_words() slow?
+        Because for each new element (elem) it wants to insert into the array, it performs an insertion sort.
+        This shifts elements one by one to maintain sorted order.
+        Insertion sort is O(N²) in the worst case, where N = ucnt (the number of unique n-grams).
+        So as ucnt becomes large, the time grows quadratically. Very slow for big datasets.
+
+    What does sort_words2() do better? What is the result after replace sort_words() with sort_words2()?
+        In sort_words2(), I:
+            First collect all elements into an array without sorting (O(N) time).
+            Then use qsort() to sort the array after collection.
+        Since qsort() is a highly optimized O(N log N) sorting algorithm (usually quicksort), the sorting is much faster for large datasets.
+        sort_words2() is much faster than sort_words() because N log N grows much slower than N².
+        The result stay the same but run faster
+
+    How to mesure the speedup? time ./ngram -file shakespeare.txt
+        sort_words2() -> real    0m2.543s
+                         user    0m2.531s
+                         sys     0m0.007s
+        sort_words() -> real    0m3.107s
+                        user    0m3.100s
+                        sys     0m0.006s
+        speedup = sort_words() / sort_words2() = 3.107 / 2.543 = 1.22
+
+Second optimisation
