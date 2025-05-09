@@ -1,0 +1,114 @@
+# Objectifs
+* Chercher des mots de passe parmi des données dont on ne connait pas (a prioiri) la structure
+* Notez vos résultats dans un fichier que vous chiffrez et envoyez à ingrid.computing@gmail.com
+
+
+# Dechiffrer/detarer
+Chercher comment le fichier est chiffré
+Chercher la commande de déchiffrement
+Deviner le bon mot de passe (indications)
+Detarer: tar xvf nom-du-fichier.tgz
+
+
+# Analyser
+Il n'est pas nécessaire d'analyser tous les fichiers
+Pour chaque fichier analysé, donnez :
+1) une caractérisation de son contenu
+2) un ou plusieurs mots de passe trouvés
+3) une ou plusieurs commandes utilsées
+
+
+# Envoyer
+Utilisez PGP pour envoyer vos notes à ingrid.computing@gmail.com
+La clé publique est ingrid.gpg.public, il faut l'importer dans gpg
+$ gpg --import Ingrid-Public-Key.asc
+Une commande possible pour chiffrer est :
+gpg -a -r ingrid -e NOTES.txt
+Envoyez le résultat à l'adresse ingrid.computing@gmail.com
+ou copiez le sur la clé USB
+
+
+# Commandes utiles
+
+## Identifying
+file sample.xyz	# determine file type
+binwalk -E sample.xyz	# entropy
+head -c 4 /bin/ls	# 4 first bytes of /bin/ls
+wc -l sample.xyz	# number of lines
+wc -L sample.xyz	# longest line
+head -n 8 sample.xyz	# 8 first lines
+tail -n 8 sample.xyz	# 8 last lines
+head -n 65536 sample.xyz | tail -n 16	# lines 65520-65536
+
+## Encoding / hashing
+echo "SSBMb3N0IQo=" | base64 -d	# base64 decode
+dos2unix file	# toggle file format
+root:1q2w3e4r # Must change!
+root:1a2z3e4r # A changer!
+sha256sum sftp-live-analysis.txt > hash.txt	# compute a hash
+sha256sum --check hash.txt	# verify a hash
+
+## Sorting / enumerating
+sort sample.xyz	# sort as text
+sort -rg sample.xyz	# sort reverse and as numbers
+sort -uV sample.xyz	# sort uniq and as versions
+sort -R file | head -n 100	# random sample (shuf)
+sort file | uniq | sort -gr	# compute frequencies
+head -c $((2**20)) < /dev/random > 1MB	# One megabyte crap
+echo GoT-S{0..8}E{01..08}.avi	# enumerate stuff
+
+## Searching
+strings -a -n 6 file	# extract some strings
+fgrep -a -C4 -i -passw- sample.xyz	# look around passw
+fgrep -wlirI -admin-	# recurse search on admin
+find . -name -*.txt-	# local text files
+find . -name -*_history- -exec cat {} \;	# cat all histories
+
+## Manipulating
+cut -f2- sample.xyz	# all column except first
+cut -c1 sample.xyz	# first character of each line
+cut -d\-  -f4 sample.xyz	# space separated columns
+tr ' \t.;?!:' '\n' < sample.xyz	# make a wordlist
+tr -c '\n' '.' < sample.xyz | sort | uniq -c	# line lengths
+paste <(cut -f2 sample.xyz) <(cut -f1 sample.xyz)	# swap columns
+rev sample.xyz | cut -d\. -f1 | rev	# file extensions
+
+## Session / History / Misc
+history | tail	# last 10 commands
+history -c	# clear current history
+script -a my-session.log	# record a session
+-cat /etc/passwd	# sometimes a space before a command hides it from history
+less .bashrc (then !cat /etc/passwd)	# issuing a command in less hides it 
+echo $(( $RANDOM % 256 ))	# random 0..255
+echo $(( $RANDOM % 7 + 1 ))	# roll a dice
+
+## Comparing
+diff this.xyz that.xyz	# Compare line by line
+comm -1 -2 <(sort this.xyz) <(sort that.xyz)	# Lines in common
+comm -2 -3 <(sort this.xyz) <(sort that.xyz)	# Only in this.xyz
+
+## combinations 
+find . -type f | rev | cut -d\. -f1 | rev | sort | uniq -c | sort -gr | head	# 10 most frequent file extensions
+find . -name -*_history- -exec cat {} \; | tr - - -\n- | sort | uniq -c | sort -gr | fgrep - 1 -	# word seen once in history
+echo {admin,root,guest}:{admin,root,,password,temp,123,guest} | tr ' ' '\n'	# generate login:password combinations
+
+## gpg symmetric
+gpg -c -a message.txt
+gpg -d message.txt.asc
+
+## gpg key creation and manipulation (for user naruto)
+gpg --gen-key
+gpg --list-keys naruto
+gpg --edit-key naruto
+gpr -a --export naruto > naruto.public.asc
+gpg -a --export-secret-key naruto > naruto.private.asc	# Store securely
+
+# gpg encrypt (for user sakura)
+gpg -a -e -r sakura message.txt
+gpg -d message.txt.asc
+
+# gpg signing / encrypting
+gpg -a -u naruto --clearsign message.txt	# sign as naruto, do not encrypt
+gpg -a -u naruto -s -r sakura -e message.txt	# sign as naruto, encrypt for sakura
+gpg -a -r sakura -e message.txt	# encrypt for sakura, do not sign
+
