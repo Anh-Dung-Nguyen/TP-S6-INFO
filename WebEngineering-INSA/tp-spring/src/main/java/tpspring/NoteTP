@@ -1,0 +1,70 @@
+Q1.2
+Pourquoi le navigateur sait-il gérer une requête GET ?
+Standard HTTP : Le protocole HTTP définit plusieurs méthodes de requêtes (GET, POST, PUT, DELETE, etc.), et GET est celle utilisée par défaut lorsqu'on charge une page web via une URL.
+Navigation web : Lorsque vous cliquez sur un lien, soumettez un formulaire sans spécifier method="POST", ou entrez une adresse, le navigateur envoie une requête GET.
+Absence d'effets secondaires : La méthode GET est censée être idempotente, c'est-à-dire que la même requête devrait toujours produire le même résultat sans modifier l'état du serveur.
+
+La barre d'adresse peut-elle gérer un POST ?
+Non, la barre d'adresse d'un navigateur ne permet pas directement d'envoyer des requêtes POST. Voici pourquoi :
+Les requêtes POST nécessitent un corps (payload) : Contrairement aux requêtes GET qui passent les paramètres dans l'URL, les POST envoient des données dans le corps de la requête.
+Les navigateurs ne fournissent pas d'interface pour taper un corps de requête dans la barre d'adresse.
+POST est souvent utilisé pour modifier des ressources, et les navigateurs veulent éviter que l'utilisateur ne modifie accidentellement des données en entrant une URL.
+
+Q1.4:
+Pourquoi une Map plutôt qu'une List ?
+Accès direct : Une Map permet d’accéder directement à un élément via sa clé (id) en O(1).
+Une List t'obligerait à parcourir toute la liste pour retrouver un élément ayant un certain id.
+
+Pourquoi un Long plutôt qu'un Integer ?
+En base de données, les identifiants (ID) sont très souvent des entiers longs (type BIGINT) pour éviter les collisions à grande échelle.
+Utiliser Long dans le backend permet d’être compatible avec cette pratique.
+
+Q3.2:
+Que fait l'annotation @Autowired ?
+L'annotation @Autowired demande à Spring Boot de "injecter automatiquement" une instance de TodoServiceV1 dans ton contrôleur.
+Tu n'as pas besoin d'écrire new TodoServiceV1() : Spring crée et gère tout seul l'instance (c'est le principe d'injection de dépendances).
+En résumé :
+    @Service = "cette classe doit être gérée par Spring"
+    @Autowired = "injecte automatiquement une instance disponible de cette classe"
+
+Que se passe-t-il si je mets un @Autowired TodoServiceV1 dans un autre contrôleur ?
+Pas de problème : Spring ne crée qu'une seule instance de TodoServiceV1 (singleton par défaut), et l'injecte partout où on en a besoin.
+Cela permet de partager les mêmes données (todos ici) entre plusieurs contrôleurs si besoin.
+
+Pourquoi utiliser un Service est mieux que ce qu'on faisait avant ?
+Avec service (TodoServiceV1)                                                                    Avant directement dans contrôleur
+Le code du contrôleur reste léger et clair (juste des appels au service)	                    Le contrôleur était chargé de toute la logique métier (CRUD)
+On peut réutiliser le service ailleurs (ex : un autre contrôleur ou une autre couche métier)	Impossible sans copier/coller
+C'est plus testable : tu peux tester TodoServiceV1 sans démarrer un serveur web	                Tester le contrôleur est lourd
+Bonne pratique architecture MVC moderne	                                                        Architecture peu propre et difficile à maintenir
+
+Q4.1:
+Étant donné le code ci-dessous, qu'est-ce qui est retourné au client qui a envoyé la requête REST ? Un objet Todo ?
+@GetMapping(path = "todo", produces = MediaType.APPLICATION_JSON_VALUE)
+public Todo todo() {
+  return new Todo(1, "A title", "desc", List.of(Category.ENTERTAINMENT, Category.WORK), "foo");
+}
+Non, ce n'est pas directement un objet Java qui retourne au client. C'est une représentation de JSON de cette objet qui renvoyée.
+
+Et maintenant avec cette méthode qui retourne void ?
+@DeleteMapping(path = "todo/{id}")
+public void deleteTodo(@PathVariable("id") final long id) {
+  if(!todoListService.removeTodo(id)) {
+    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not possible");
+  }
+}
+En cas de réussite, il retourne seulement code de réussite HTTP 200
+En cas de échouée, l'exception s'élève, il retourne code HTTP 400 avec un message "Not possible" et erreur de "BAD REQUEST" dans le corps JSON
+
+Q4.2:
+Ce @PutMapping permet de remplacer complètement un utilisateur côté serveur, à condition que son id corresponde à celui de l'utilisateur déjà stocké (dataService.getUser()).
+Quelle différence par rapport à la méthode void + @DeleteMapping de la question précédente ?
+Aspect	                        @PutMapping avec ResponseEntity	                                @DeleteMapping avec void
+Opération	                    Remplacement complet d'une ressource (User)	                    Suppression d'une ressource (Todo)
+Contrôle du code HTTP	        Oui (ResponseEntity.ok() → 200 OK)	                            Non explicite (retourne 200 OK par défaut)
+Possibilité de personnalisation	Haute (on peut retourner d'autres statuts ou messages)	        Faible (juste void)
+Utilité de ResponseEntity	    Permet d'adapter le statut ou ajouter des headers, body, etc.	Non utilisé dans le void
+Gestion d’erreur	            Utilise ResponseStatusException pour signaler un mauvais id	    Pareil, mais avec une autre logique métier
+
+Q4.3:
+Il s'élève une exception de code HTTP 400 avec un message de "Not possible" dans le corps JSON
